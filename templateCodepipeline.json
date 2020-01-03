@@ -63,7 +63,7 @@
 									"Provider": "CodeBuild"
 								},
 								"Configuration": {
-									"ProjectName": "JenkinsWithCodepipeline-node-13"
+									"ProjectName": "JenkinsWithCodepipeline-node-8"
 								},
 								"InputArtifacts": [
 									{
