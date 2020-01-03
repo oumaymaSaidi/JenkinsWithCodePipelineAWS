@@ -22,7 +22,7 @@
 				],
 				"ArtifactStore": {
 					"Type": "S3",
-					"Location": "jenkins-with-codepipeline-bucket"
+					"Location": "bucket-jenkins"
 				},
 				"Stages": [
 					{
