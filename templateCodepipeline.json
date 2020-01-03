@@ -14,12 +14,6 @@
 			"Properties": {
 				"Name": "PipelineTest-JenkinsWithCodepipeline",
 				"RoleArn": "arn:aws:iam::309830644842:role/jenkinsRole",
-				"DisableInboundStageTransitions": [
-					{
-						"StageName": "Production",
-						"Reason": "Transition disabled. Waiting for the first Production release"
-					}
-				],
 				"ArtifactStore": {
 					"Type": "S3",
 					"Location": "bucket-jenkins"
