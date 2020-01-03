@@ -1,0 +1,195 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Build Development Phase Environment",
+	"Resources": {
+		"PhaseRepository": {
+			"Type": "AWS::CodeCommit::Repository",
+			"Properties": {
+				"RepositoryName": "RepoTestJenkinsWithCodepipeline",
+				"RepositoryDescription": "Code source du projet JenkinsWithCodepipeline"
+			}
+		},
+		"PhasePipeline": {
+			"Type": "AWS::CodePipeline::Pipeline",
+			"Properties": {
+				"Name": "PipelineTest-JenkinsWithCodepipeline",
+				"RoleArn": "arn:aws:iam::309830644842:role/jenkinsRole",
+				"DisableInboundStageTransitions": [
+					{
+						"StageName": "Production",
+						"Reason": "Transition disabled. Waiting for the first Production release"
+					}
+				],
+				"ArtifactStore": {
+					"Type": "S3",
+					"Location": "JenkinsWithCodepipeline-bucket"
+				},
+				"Stages": [
+					{
+						"Name": "Source",
+						"Actions": [
+							{
+								"Name": "Source",
+								"ActionTypeId": {
+									"Category": "Source",
+									"Owner": "AWS",
+									"Version": "1",
+									"Provider": "CodeCommit"
+								},
+								"Configuration": {
+									"PollForSourceChanges": "false",
+									"BranchName": "master",
+									"RepositoryName": "RepoTestJenkinsWithCodepipeline"
+								},
+								"InputArtifacts": [],
+								"OutputArtifacts": [
+									{
+										"Name": "src"
+									}
+								],
+								"RunOrder": "1"
+							}
+						]
+					},
+					{
+						"Name": "Build",
+						"Actions": [
+							{
+								"Name": "Build",
+								"ActionTypeId": {
+									"Category": "Build",
+									"Owner": "AWS",
+									"Version": "1",
+									"Provider": "CodeBuild"
+								},
+								"Configuration": {
+									"ProjectName": "JenkinsWithCodepipeline-node-13"
+								},
+								"InputArtifacts": [
+									{
+										"Name": "src"
+									}
+								],
+								"OutputArtifacts": [
+									{
+										"Name": "build"
+									}
+								],
+								"RunOrder": "1"
+							}
+						]
+					},
+					{
+						"Name": "Staging",
+						"Actions": [
+							{
+								"Name": "GenerateChangeSet",
+								"ActionTypeId": {
+									"Category": "Deploy",
+									"Owner": "AWS",
+									"Version": "1",
+									"Provider": "CloudFormation"
+								},
+								"Configuration": {
+									"ActionMode": "CHANGE_SET_REPLACE",
+									"ChangeSetName": "JenkinsWithCodepipeline-changeset",
+									"RoleArn": "arn:aws:iam::309830644842:role/jenkinsRole",
+									"Capabilities": "CAPABILITY_NAMED_IAM",
+									"StackName": "JenkinsWithCodepipeline-ds",
+									"TemplatePath": "build::template-export.yml"
+								},
+								"InputArtifacts": [
+									{
+										"Name": "build"
+									}
+								],
+								"OutputArtifacts": [],
+								"RunOrder": "1"
+							},
+							{
+								"Name": "ExecuteChangeSet",
+								"ActionTypeId": {
+									"Category": "Deploy",
+									"Owner": "AWS",
+									"Version": "1",
+									"Provider": "CloudFormation"
+								},
+								"Configuration": {
+									"StackName": "JenkinsWithCodepipeline-ds",
+									"ActionMode": "CHANGE_SET_EXECUTE",
+									"ChangeSetName": "JenkinsWithCodepipeline-changeset"
+								},
+								"InputArtifacts": [],
+								"OutputArtifacts": [],
+								"RunOrder": "2"
+							},
+							{
+								"Name": "Validation",
+								"ActionTypeId": {
+									"Category": "Approval",
+									"Owner": "AWS",
+									"Version": "1",
+									"Provider": "Manual"
+								},
+								"Configuration": {},
+								"InputArtifacts": [],
+								"OutputArtifacts": [],
+								"RunOrder": "3"
+							}
+						]
+					}
+				]
+			}
+		},
+		"PhaseRule": {
+			"Type": "AWS::Events::Rule",
+			"Properties": {
+				"Name": "codepipeline-JenkinsWithCodepipeline",
+				"Description": "Launch Pipeline when phase is commited",
+				"State": "ENABLED",
+				"EventPattern": {
+					"Source": [
+						"aws.codecommit"
+					],
+					"Detail-Type": [
+						"CodeCommit Repository State Change"
+					],
+					"Resources": "arn:aws:codecommit:eu-west-1:309830644842:RepoTestJenkinsWithCodepipeline",
+					"Detail": {
+						"Event": [
+							"referenceCreated",
+							"referenceUpdated"
+						],
+						"ReferenceType": [
+							"branch"
+						],
+						"ReferenceName": [
+							"master"
+						]
+					}
+				},
+				"Targets": [
+					{
+						"Id": "JenkinsWithCodepipeline-target",
+						"Arn": "arn:aws:codepipeline:eu-west-1:309830644842:JenkinsWithCodepipeline",
+						"RoleArn": "arn:aws:iam::309830644842:role/JenkinsWithCodepipeline-start"
+					}
+				]
+			}
+		}
+	},
+	"Outputs": {
+		"Repository": {
+			"Value": "RepoTestJenkinsWithCodepipeline",
+			"Export": {
+				"Name": "JenkinsWithCodepipeline-ds-repository"
+			}
+		},
+		"Pipeline": {
+			"Value": "PipelineTest-JenkinsWithCodepipeline",
+			"Export": {
+				"Name": "JenkinsWithCodepipeline-ds-pipeline"
+			}
+		}
+	}
+}
