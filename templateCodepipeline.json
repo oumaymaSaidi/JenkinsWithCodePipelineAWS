@@ -154,7 +154,9 @@
 					"Detail-Type": [
 						"CodeCommit Repository State Change"
 					],
-					"Resources": "arn:aws:codecommit:eu-west-1:309830644842:RepoTestJenkinsWithCodepipeline",
+					"Resources": [
+						"arn:aws:codecommit:eu-west-1:309830644842:RepoTestJenkinsWithCodepipeline"
+					],
 					"Detail": {
 						"Event": [
 							"referenceCreated",
